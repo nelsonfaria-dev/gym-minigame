@@ -2,6 +2,8 @@
 
 A short workout break: tap to lift, finish eight reps, then head back to your page. The last rep takes a little more effort.
 
+[Play the game](https://nelsonfaria-dev.github.io/gym-minigame/)
+
 Built with React, TypeScript, CSS animations and PNG sprites. Vite builds the package. Supports mouse, touch, Enter and Space, and respects reduced motion.
 
 ## Use
