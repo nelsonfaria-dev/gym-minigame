@@ -1,7 +1,7 @@
 export const gymGameConfig = {
   entryDurationMs: 1600,
   reducedEntryMs: 120,
-  readyDurationMs: 450,
+  readyDurationMs: 0,
   topHoldMs: 180,
   loweringDurationMs: 480,
   resultActionDelayMs: 1200,

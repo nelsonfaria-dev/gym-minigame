@@ -14,8 +14,10 @@ interface StoredLeaderboard {
   entries: StoredEntry[];
 }
 
+const defaultStorageKey = 'gym-minigame:leaderboard:final-v1';
+
 export function createLocalLeaderboard({
-  storageKey = 'gym-minigame:leaderboard:cadence-v1',
+  storageKey = defaultStorageKey,
   sampleTimes = [],
 }: {
   storageKey?: string;
@@ -23,6 +25,13 @@ export function createLocalLeaderboard({
 } = {}): GymLeaderboardAdapter & { reset: () => void } {
   let memory: StoredLeaderboard | null = null;
   let persisted = true;
+  if (storageKey === defaultStorageKey) {
+    try {
+      localStorage.removeItem('gym-minigame:leaderboard:cadence-v1');
+    } catch {
+      persisted = false;
+    }
+  }
 
   const fresh = (): StoredLeaderboard => ({
     playerId: crypto.randomUUID(),

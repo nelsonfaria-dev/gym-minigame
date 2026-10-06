@@ -93,8 +93,8 @@ function GymSession({
     state.phase === 'finished' ||
     (state.phase === 'exiting' && completed.current);
   const status =
-    state.phase === 'ready'
-      ? 'READY?'
+    state.phase === 'entering' && assets.status === 'ready'
+      ? 'READY'
       : state.phase === 'top'
         ? '+1 REP'
         : showGo
@@ -194,7 +194,7 @@ function GymSession({
           <div className="gym-experience__controls">
             <div className="gym-experience__copy">
               <span
-                className={`gym-experience__status${status === 'READY?' || status === 'GO!' ? ' gym-experience__status--start' : ''}`}
+                className={`gym-experience__status${status === 'READY' || status === 'GO!' ? ' gym-experience__status--start' : ''}`}
               >
                 {status}
               </span>
