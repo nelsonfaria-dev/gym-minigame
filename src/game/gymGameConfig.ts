@@ -14,15 +14,15 @@ export const gymGameConfig = {
   finalRepCadence: {
     startsAt: 0.45,
     fullAt: 0.5,
-    fastIntervalMs: 125,
+    fastIntervalMs: 120,
     slowIntervalMs: 140,
     slowGainPerSecond: 0.145,
     fastGainPerSecond: 0.25,
     response: 0.5,
   },
   finalRepAssist: {
-    startsAt: 0.68,
-    fullAt: 0.75,
+    startsAt: 0.75,
+    fullAt: 0.82,
     extraImpulse: 0.036,
     maxGainPerSecond: 0.265,
     extraGainPerSecond: 0.16,
