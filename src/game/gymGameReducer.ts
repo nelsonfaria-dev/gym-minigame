@@ -16,6 +16,9 @@ export function createInitialState(): GymState {
     effort: 0,
     phaseStartedAt: 0,
     lastInputAt: 0,
+    tapIntervalMs: null,
+    workoutStartedAt: null,
+    workoutDurationMs: null,
     lastTickAt: 0,
     reducedMotion: false,
   };
@@ -54,6 +57,7 @@ function advancePhase(state: GymState, now: number): GymState {
     ...state,
     phaseStartedAt: now,
     lastInputAt: now,
+    tapIntervalMs: null,
     lastTickAt: now,
   };
   switch (state.phase) {
@@ -143,13 +147,33 @@ export function gymGameReducer(state: GymState, action: GymAction): GymState {
   if (action.type === 'tick') return advanceTime(state, action.now);
   const next = advanceTime(state, action.now);
   if (next.phase !== 'lifting') return next;
-  const effort = clamp(next.effort + getLiftImpulse(next, action.now));
-  if (effort < 1) return { ...next, effort, lastInputAt: action.now };
-  return {
+  const gap = Math.max(0, action.now - next.lastInputAt);
+  const cadence = config.finalRepCadence;
+  const tapIntervalMs =
+    gap === 0
+      ? next.tapIntervalMs
+      : gap >= config.idleDrop.delayMs
+        ? config.idleDrop.delayMs
+        : next.tapIntervalMs === null
+          ? gap
+          : next.tapIntervalMs + (gap - next.tapIntervalMs) * cadence.response;
+  const tapped = {
     ...next,
+    tapIntervalMs,
+    workoutStartedAt:
+      next.workoutStartedAt ?? (next.repIndex === 0 ? action.now : null),
+  };
+  const effort = clamp(next.effort + getLiftImpulse(tapped, action.now));
+  if (effort < 1) return { ...tapped, effort, lastInputAt: action.now };
+  return {
+    ...tapped,
     effort: 1,
     phase: 'top',
     completedReps: next.completedReps + 1,
+    workoutDurationMs:
+      next.completedReps + 1 === totalReps() && tapped.workoutStartedAt !== null
+        ? Math.round(action.now - tapped.workoutStartedAt)
+        : null,
     phaseStartedAt: action.now,
     lastInputAt: action.now,
   };

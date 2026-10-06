@@ -10,6 +10,7 @@ import type { MotionSource } from '../utils/motionStore';
 
 interface Burst {
   id: number;
+  slot: string;
   message: string;
   side: string;
   top: number;
@@ -41,11 +42,13 @@ export function FinalRepChaos({
     (motion.get().finalRepIntensity ?? 0) >= 0.55,
   );
   const activeRef = useRef(active);
+  const liftProgress = useRef(motion.get().curlProgress);
   const serial = useRef(0);
   const [bursts, setBursts] = useState<Burst[]>([]);
   useLayoutEffect(
     () =>
       motion.subscribe((frame) => {
+        liftProgress.current = frame.curlProgress;
         const next = (frame.finalRepIntensity ?? 0) >= 0.55;
         if (activeRef.current !== next) {
           activeRef.current = next;
@@ -59,7 +62,8 @@ export function FinalRepChaos({
   useEffect(() => {
     if (!active || reducedMotion) return;
     let spawnTimer = 0;
-    let expiryTimer = 0;
+    const expiryTimers = new Set<number>();
+    let liveBursts: Burst[] = [];
     let cancelled = false;
     let lastPhrase = -1;
     let lastMovement = -1;
@@ -76,8 +80,24 @@ export function FinalRepChaos({
       }
     }
     setBursts([]);
+    const takeSlot = (side: 'left' | 'right') => {
+      const deck = decks[side];
+      for (let attempt = 0; attempt < deck.length; attempt++) {
+        const slot = deck[nextSlot[side]++ % deck.length];
+        if (
+          !liveBursts.some((burst) => burst.slot === `${slot.side}-${slot.top}`)
+        )
+          return slot;
+      }
+    };
     const spawn = () => {
       if (cancelled) return;
+      const slot =
+        takeSlot(nextSide) ?? takeSlot(nextSide === 'left' ? 'right' : 'left');
+      if (!slot) {
+        spawnTimer = window.setTimeout(spawn, 80);
+        return;
+      }
       const phrase =
         lastPhrase < 0
           ? Math.floor(Math.random() * gymCopy.finalRepShouts.length)
@@ -86,9 +106,7 @@ export function FinalRepChaos({
               Math.floor(Math.random() * (gymCopy.finalRepShouts.length - 1))) %
             gymCopy.finalRepShouts.length;
       lastPhrase = phrase;
-      const deck = decks[nextSide];
-      const slot = deck[nextSlot[nextSide]++ % deck.length];
-      nextSide = nextSide === 'left' ? 'right' : 'left';
+      nextSide = slot.side === 'left' ? 'right' : 'left';
       const life = 1120;
       const movement =
         lastMovement < 0
@@ -100,6 +118,7 @@ export function FinalRepChaos({
       lastMovement = movement;
       const burst: Burst = {
         id: ++serial.current,
+        slot: `${slot.side}-${slot.top}`,
         message: gymCopy.finalRepShouts[phrase],
         ...slot,
         top: slot.top + Math.random() * 6 - 3,
@@ -110,17 +129,27 @@ export function FinalRepChaos({
         movement: movements[movement],
         life,
       };
-      setBursts([burst]);
-      expiryTimer = window.setTimeout(() => {
-        if (!cancelled) setBursts([]);
+      liveBursts = [...liveBursts, burst];
+      setBursts(liveBursts);
+      const expiryTimer = window.setTimeout(() => {
+        expiryTimers.delete(expiryTimer);
+        if (cancelled) return;
+        liveBursts = liveBursts.filter((item) => item.id !== burst.id);
+        setBursts(liveBursts);
       }, life);
-      spawnTimer = window.setTimeout(spawn, life + 300 + Math.random() * 200);
+      expiryTimers.add(expiryTimer);
+      const progress = Math.min(
+        1,
+        Math.max(0, (liftProgress.current - 0.2) / 0.6),
+      );
+      const interval = 1480 - 1200 * Math.sqrt(progress) + Math.random() * 80;
+      spawnTimer = window.setTimeout(spawn, interval);
     };
     spawn();
     return () => {
       cancelled = true;
       window.clearTimeout(spawnTimer);
-      window.clearTimeout(expiryTimer);
+      expiryTimers.forEach((timer) => window.clearTimeout(timer));
     };
   }, [active, reducedMotion]);
 
@@ -129,6 +158,7 @@ export function FinalRepChaos({
     ? [
         {
           id: -1,
+          slot: 'static-left',
           message: 'DON’T GIVE UP!',
           side: 'left',
           top: 48,
@@ -141,6 +171,7 @@ export function FinalRepChaos({
         },
         {
           id: -2,
+          slot: 'static-right',
           message: 'ALMOST THERE!!!',
           side: 'right',
           top: 58,
@@ -165,6 +196,7 @@ export function FinalRepChaos({
           key={burst.id}
           className={`gym-experience__chaos-burst gym-experience__chaos-burst--${burst.side}`}
           data-chaos-burst={burst.id}
+          data-chaos-slot={burst.slot}
           style={
             {
               '--gym-chaos-top': `${burst.top}%`,

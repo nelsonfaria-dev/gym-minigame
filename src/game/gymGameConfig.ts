@@ -11,12 +11,21 @@ export const gymGameConfig = {
     delayMs: 250,
     extraDecayPerSecond: 1.1,
   },
+  finalRepCadence: {
+    startsAt: 0.65,
+    fullAt: 0.7,
+    fastIntervalMs: 140,
+    slowIntervalMs: 190,
+    slowGainPerSecond: 0.145,
+    fastGainPerSecond: 0.25,
+    response: 0.5,
+  },
   finalRepAssist: {
-    startsAt: 0.45,
-    fullAt: 0.75,
+    startsAt: 0.85,
+    fullAt: 0.95,
     extraImpulse: 0.036,
-    maxGainPerSecond: 0.245,
-    extraGainPerSecond: 0.1,
+    maxGainPerSecond: 0.265,
+    extraGainPerSecond: 0.16,
   },
   repDifficulties: [
     {
@@ -102,12 +111,39 @@ export const getRepDifficulty = (state: { repIndex: number }) =>
   gymGameConfig.repDifficulties[state.repIndex];
 
 export function getLiftImpulse(
-  state: { repIndex: number; effort: number; lastInputAt: number },
+  state: {
+    repIndex: number;
+    effort: number;
+    lastInputAt: number;
+    tapIntervalMs: number | null;
+  },
   now: number,
 ) {
   const base = getRepDifficulty(state).impulsePerInput;
   if (state.repIndex !== totalReps() - 1) return base;
   const assist = gymGameConfig.finalRepAssist;
+  const cadence = gymGameConfig.finalRepCadence;
+  const speed = Math.max(
+    0,
+    Math.min(
+      1,
+      (cadence.slowIntervalMs -
+        (state.tapIntervalMs ?? cadence.slowIntervalMs)) /
+        (cadence.slowIntervalMs - cadence.fastIntervalMs),
+    ),
+  );
+  const resistance = Math.max(
+    0,
+    Math.min(
+      1,
+      (state.effort - cadence.startsAt) / (cadence.fullAt - cadence.startsAt),
+    ),
+  );
+  const hardGain =
+    cadence.slowGainPerSecond +
+    (cadence.fastGainPerSecond - cadence.slowGainPerSecond) * speed;
+  const gainPerSecond =
+    assist.maxGainPerSecond + (hardGain - assist.maxGainPerSecond) * resistance;
   const progress = Math.max(
     0,
     Math.min(
@@ -118,6 +154,6 @@ export function getLiftImpulse(
   const impulse = base + assist.extraImpulse * progress;
   const elapsed = Math.max(0, now - state.lastInputAt) / 1000;
   const gainLimit =
-    (assist.maxGainPerSecond + assist.extraGainPerSecond * progress) * elapsed;
+    (gainPerSecond + assist.extraGainPerSecond * progress) * elapsed;
   return Math.min(impulse, gainLimit);
 }

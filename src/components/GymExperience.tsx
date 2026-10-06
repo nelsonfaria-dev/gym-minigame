@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type RefObject } from 'react';
+import { useEffect, useId, useRef, useState, type RefObject } from 'react';
 import { Cross1Icon } from '@radix-ui/react-icons';
 import { useGymGame } from '../game/useGymGame';
 import { useGymMotion } from '../game/useGymMotion';
@@ -10,6 +10,8 @@ import { GymHUD } from './GymHUD';
 import { GymCTA } from './GymCTA';
 import { EffortMeter } from './EffortMeter';
 import { GymResult } from './GymResult';
+import { GymLeaderboard } from './GymLeaderboard';
+import type { GymLeaderboardAdapter } from '../leaderboard/types.js';
 import { useCharacterAssets } from '../character/useCharacterAssets';
 
 export interface GymExperienceProps {
@@ -17,6 +19,7 @@ export interface GymExperienceProps {
   onClose: () => void;
   onComplete?: () => void;
   returnFocusRef?: RefObject<HTMLElement | null>;
+  leaderboard?: GymLeaderboardAdapter;
 }
 
 export function GymExperience(props: GymExperienceProps) {
@@ -30,6 +33,7 @@ function GymSession({
   onClose,
   onComplete,
   returnFocusRef,
+  leaderboard,
   reducedMotion,
 }: GymExperienceProps & { reducedMotion: boolean }) {
   const assets = useCharacterAssets();
@@ -43,6 +47,7 @@ function GymSession({
   const root = useRef<HTMLDivElement>(null);
   const completed = useRef(false);
   const closed = useRef(false);
+  const [showGo, setShowGo] = useState(false);
   const callbacks = useRef({ onClose, onComplete });
   callbacks.current = { onClose, onComplete };
   const instructionId = useId();
@@ -76,16 +81,24 @@ function GymSession({
     }
   }, [state.phase, didComplete]);
 
+  useEffect(() => {
+    const starting = state.phase === 'lifting' && state.repIndex === 0;
+    setShowGo(starting);
+    if (!starting) return;
+    const timer = window.setTimeout(() => setShowGo(false), 750);
+    return () => window.clearTimeout(timer);
+  }, [state.phase, state.phaseStartedAt, state.repIndex]);
+
   const finished =
     state.phase === 'finished' ||
     (state.phase === 'exiting' && completed.current);
   const status =
-    state.phase === 'entering'
-      ? 'GYM'
-      : state.phase === 'ready'
-        ? 'READY?'
-        : state.phase === 'top'
-          ? '+1 REP'
+    state.phase === 'ready'
+      ? 'READY?'
+      : state.phase === 'top'
+        ? '+1 REP'
+        : showGo
+          ? 'GO!'
           : '';
   const announcement = finished
     ? `Workout complete. ${totalReps()} reps.`
@@ -106,6 +119,7 @@ function GymSession({
       data-phase={state.phase}
       data-reduced-motion={reducedMotion}
       data-assets={assets.status}
+      data-leaderboard={Boolean(leaderboard && finished)}
       style={
         {
           '--gym-enter-ms': `${gymGameConfig.reducedEntryMs}ms`,
@@ -136,9 +150,6 @@ function GymSession({
         }
       }}
     >
-      <span className="gym-experience__corner-label gym-experience__micro">
-        A SMALL BREAK FROM CODE
-      </span>
       <button
         ref={closeButton}
         type="button"
@@ -182,7 +193,11 @@ function GymSession({
         ) : (
           <div className="gym-experience__controls">
             <div className="gym-experience__copy">
-              <span className="gym-experience__status">{status}</span>
+              <span
+                className={`gym-experience__status${status === 'READY?' || status === 'GO!' ? ' gym-experience__status--start' : ''}`}
+              >
+                {status}
+              </span>
               <p
                 className={
                   assets.status === 'error'
@@ -206,12 +221,14 @@ function GymSession({
               }
               buttonRef={cta}
             />
-            <span className="gym-experience__hint">
-              {state.completedReps === 0
-                ? gymCopy.firstRepHint
-                : 'tap · enter · space'}
-            </span>
+            <span className="gym-experience__hint">{gymCopy.firstRepHint}</span>
           </div>
+        )}
+        {finished && leaderboard && (
+          <GymLeaderboard
+            adapter={leaderboard}
+            durationMs={state.workoutDurationMs}
+          />
         )}
       </div>
     </div>

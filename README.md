@@ -40,6 +40,10 @@ export function Workout() {
 
 The game fills its parent, which needs a height and `position: relative`. `onComplete` is an optional callback after the eighth rep. In Next.js, render it inside a client component.
 
+For a ranking, create a `createLocalLeaderboard()` instance and pass it as the `leaderboard` prop. It keeps one best time per browser. Results are not shared between players.
+
+You can also provide your own `load` and `submit` methods using the exported `GymLeaderboardAdapter` type.
+
 ## Build
 
 ```sh
