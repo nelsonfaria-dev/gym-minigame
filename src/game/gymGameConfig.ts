@@ -21,7 +21,7 @@ export const gymGameConfig = {
     response: 0.5,
   },
   finalRepAssist: {
-    startsAt: 0.6,
+    startsAt: 0.68,
     fullAt: 0.75,
     extraImpulse: 0.036,
     maxGainPerSecond: 0.265,
