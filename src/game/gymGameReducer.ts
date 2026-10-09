@@ -17,6 +17,8 @@ export function createInitialState(): GymState {
     phaseStartedAt: 0,
     lastInputAt: 0,
     tapIntervalMs: null,
+    finalRepAttempted: false,
+    finalRepRetry: false,
     workoutStartedAt: null,
     workoutDurationMs: null,
     lastTickAt: 0,
@@ -42,6 +44,7 @@ export function phaseDuration(state: GymState): number | null {
       return null;
   }
 }
+
 export function workoutCompletionTime(state: GymState): number | null {
   if (state.completedReps < totalReps()) return null;
   if (state.phase === 'top')
@@ -118,6 +121,12 @@ function advanceTime(state: GymState, now: number): GymState {
           idleElapsed * config.idleDrop.extraDecayPerSecond,
       ),
     };
+    if (
+      next.repIndex === totalReps() - 1 &&
+      next.finalRepAttempted &&
+      next.effort < config.finalRepRetry.resetBelow
+    )
+      next = { ...next, finalRepRetry: true };
   }
   return { ...next, lastTickAt: now };
 }
@@ -164,6 +173,10 @@ export function gymGameReducer(state: GymState, action: GymAction): GymState {
       next.workoutStartedAt ?? (next.repIndex === 0 ? action.now : null),
   };
   const effort = clamp(next.effort + getLiftImpulse(tapped, action.now));
+  tapped.finalRepAttempted =
+    next.finalRepAttempted ||
+    (next.repIndex === totalReps() - 1 &&
+      effort >= config.finalRepCadence.fullAt);
   if (effort < 1) return { ...tapped, effort, lastInputAt: action.now };
   return {
     ...tapped,

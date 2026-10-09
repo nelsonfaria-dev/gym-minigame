@@ -17,6 +17,8 @@ export interface GymState {
   phaseStartedAt: number;
   lastInputAt: number;
   tapIntervalMs: number | null;
+  finalRepAttempted: boolean;
+  finalRepRetry: boolean;
   workoutStartedAt: number | null;
   workoutDurationMs: number | null;
   lastTickAt: number;

@@ -17,62 +17,67 @@ export const gymGameConfig = {
     fastIntervalMs: 120,
     slowIntervalMs: 140,
     slowGainPerSecond: 0.145,
-    fastGainPerSecond: 0.25,
+    fastGainPerSecond: 0.255,
     response: 0.5,
   },
   finalRepAssist: {
     startsAt: 0.75,
     fullAt: 0.82,
-    extraImpulse: 0.036,
-    maxGainPerSecond: 0.265,
-    extraGainPerSecond: 0.16,
+    extraImpulse: 0.038,
+    maxGainPerSecond: 0.275,
+    extraGainPerSecond: 0.17,
+  },
+  finalRepRetry: {
+    resetBelow: 0.2,
+    fastIntervalMs: 140,
+    slowIntervalMs: 170,
   },
   repDifficulties: [
     {
-      impulsePerInput: 0.25,
+      impulsePerInput: 0.26,
       decayPerSecond: 0.08,
       idleGraceMs: 170,
       cta: 'LIFT',
     },
     {
-      impulsePerInput: 0.2,
+      impulsePerInput: 0.21,
       decayPerSecond: 0.1,
       idleGraceMs: 150,
       cta: 'LIFT',
     },
     {
-      impulsePerInput: 0.15,
+      impulsePerInput: 0.158,
       decayPerSecond: 0.12,
       idleGraceMs: 120,
       cta: 'LIFT',
     },
     {
-      impulsePerInput: 0.11,
+      impulsePerInput: 0.116,
       decayPerSecond: 0.14,
       idleGraceMs: 90,
       cta: 'PUSH',
     },
     {
-      impulsePerInput: 0.08,
+      impulsePerInput: 0.084,
       decayPerSecond: 0.16,
       idleGraceMs: 60,
       cta: 'PUSH',
     },
     {
-      impulsePerInput: 0.07,
+      impulsePerInput: 0.074,
       decayPerSecond: 0.17,
       idleGraceMs: 50,
       cta: 'KEEP GOING',
     },
     {
-      impulsePerInput: 0.06,
+      impulsePerInput: 0.063,
       decayPerSecond: 0.18,
       idleGraceMs: 35,
       cta: 'KEEP GOING',
     },
     {
-      impulsePerInput: 0.054,
-      decayPerSecond: 0.18,
+      impulsePerInput: 0.057,
+      decayPerSecond: 0.1701,
       idleGraceMs: 0,
       cta: 'ONE MORE',
     },
@@ -116,6 +121,7 @@ export function getLiftImpulse(
     effort: number;
     lastInputAt: number;
     tapIntervalMs: number | null;
+    finalRepRetry: boolean;
   },
   now: number,
 ) {
@@ -123,13 +129,13 @@ export function getLiftImpulse(
   if (state.repIndex !== totalReps() - 1) return base;
   const assist = gymGameConfig.finalRepAssist;
   const cadence = gymGameConfig.finalRepCadence;
+  const pace = state.finalRepRetry ? gymGameConfig.finalRepRetry : cadence;
   const speed = Math.max(
     0,
     Math.min(
       1,
-      (cadence.slowIntervalMs -
-        (state.tapIntervalMs ?? cadence.slowIntervalMs)) /
-        (cadence.slowIntervalMs - cadence.fastIntervalMs),
+      (pace.slowIntervalMs - (state.tapIntervalMs ?? pace.slowIntervalMs)) /
+        (pace.slowIntervalMs - pace.fastIntervalMs),
     ),
   );
   const resistance = Math.max(
