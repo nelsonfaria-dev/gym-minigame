@@ -1,6 +1,6 @@
 {
   "name": "gym-minigame",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "An eight-rep workout minigame for React.",
   "type": "module",
   "license": "MIT",
