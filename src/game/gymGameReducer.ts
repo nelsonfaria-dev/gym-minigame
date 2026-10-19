@@ -18,7 +18,7 @@ export function createInitialState(): GymState {
     lastInputAt: 0,
     tapIntervalMs: null,
     finalRepAttempted: false,
-    finalRepRetry: false,
+    finalRepAttempt: 1,
     workoutStartedAt: null,
     workoutDurationMs: null,
     lastTickAt: 0,
@@ -124,9 +124,14 @@ function advanceTime(state: GymState, now: number): GymState {
     if (
       next.repIndex === totalReps() - 1 &&
       next.finalRepAttempted &&
-      next.effort < config.finalRepRetry.resetBelow
+      next.effort <= config.finalRepRetry.resetBelow
     )
-      next = { ...next, finalRepRetry: true };
+      next = {
+        ...next,
+        finalRepAttempt: next.finalRepAttempt + 1,
+        finalRepAttempted: false,
+        tapIntervalMs: null,
+      };
   }
   return { ...next, lastTickAt: now };
 }

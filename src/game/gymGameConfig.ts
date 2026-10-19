@@ -27,10 +27,16 @@ export const gymGameConfig = {
     maxGainPerSecond: 0.265,
     extraGainPerSecond: 0.16,
   },
+  finalRepFirstAttempt: {
+    startsAt: 0.5,
+    limitAt: 0.6,
+    extraGainPerSecond: 0.012,
+  },
   finalRepRetry: {
-    resetBelow: 0.2,
-    fastIntervalMs: 140,
-    slowIntervalMs: 170,
+    resetBelow: 0.25,
+    easierFromAttempt: 3,
+    fastIntervalMs: 123,
+    slowIntervalMs: 143,
   },
   repDifficulties: [
     {
@@ -121,7 +127,7 @@ export function getLiftImpulse(
     effort: number;
     lastInputAt: number;
     tapIntervalMs: number | null;
-    finalRepRetry: boolean;
+    finalRepAttempt: number;
   },
   now: number,
 ) {
@@ -129,7 +135,9 @@ export function getLiftImpulse(
   if (state.repIndex !== totalReps() - 1) return base;
   const assist = gymGameConfig.finalRepAssist;
   const cadence = gymGameConfig.finalRepCadence;
-  const pace = state.finalRepRetry ? gymGameConfig.finalRepRetry : cadence;
+  const retry = gymGameConfig.finalRepRetry;
+  const pace =
+    state.finalRepAttempt >= retry.easierFromAttempt ? retry : cadence;
   const speed = Math.max(
     0,
     Math.min(
@@ -148,8 +156,20 @@ export function getLiftImpulse(
   const hardGain =
     cadence.slowGainPerSecond +
     (cadence.fastGainPerSecond - cadence.slowGainPerSecond) * speed;
-  const gainPerSecond =
+  let gainPerSecond =
     assist.maxGainPerSecond + (hardGain - assist.maxGainPerSecond) * resistance;
+  const wall = gymGameConfig.finalRepFirstAttempt;
+  if (state.finalRepAttempt === 1 && state.effort >= wall.startsAt) {
+    const remaining = Math.max(
+      0,
+      (wall.limitAt - state.effort) / (wall.limitAt - wall.startsAt),
+    );
+    gainPerSecond = Math.min(
+      gainPerSecond,
+      getRepDifficulty(state).decayPerSecond +
+        wall.extraGainPerSecond * remaining,
+    );
+  }
   const progress = Math.max(
     0,
     Math.min(
@@ -161,5 +181,7 @@ export function getLiftImpulse(
   const elapsed = Math.max(0, now - state.lastInputAt) / 1000;
   const gainLimit =
     (gainPerSecond + assist.extraGainPerSecond * progress) * elapsed;
-  return Math.min(impulse, gainLimit);
+  const headroom =
+    state.finalRepAttempt === 1 ? Math.max(0, wall.limitAt - state.effort) : 1;
+  return Math.min(impulse, gainLimit, headroom);
 }
