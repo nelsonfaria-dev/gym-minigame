@@ -124,7 +124,7 @@ function advanceTime(state: GymState, now: number): GymState {
     if (
       next.repIndex === totalReps() - 1 &&
       next.finalRepAttempted &&
-      next.effort <= config.finalRepRetry.resetBelow
+      next.effort < config.finalRepRetry.resetBelow
     )
       next = {
         ...next,

@@ -28,12 +28,12 @@ export const gymGameConfig = {
     extraGainPerSecond: 0.16,
   },
   finalRepFirstAttempt: {
-    startsAt: 0.5,
-    limitAt: 0.6,
-    extraGainPerSecond: 0.012,
+    startsAt: 0.45,
+    limitAt: 0.7,
+    extraGainPerSecond: 0.03,
   },
   finalRepRetry: {
-    resetBelow: 0.25,
+    resetBelow: 0.4,
     easierFromAttempt: 3,
     fastIntervalMs: 123,
     slowIntervalMs: 143,
@@ -160,15 +160,8 @@ export function getLiftImpulse(
     assist.maxGainPerSecond + (hardGain - assist.maxGainPerSecond) * resistance;
   const wall = gymGameConfig.finalRepFirstAttempt;
   if (state.finalRepAttempt === 1 && state.effort >= wall.startsAt) {
-    const remaining = Math.max(
-      0,
-      (wall.limitAt - state.effort) / (wall.limitAt - wall.startsAt),
-    );
-    gainPerSecond = Math.min(
-      gainPerSecond,
-      getRepDifficulty(state).decayPerSecond +
-        wall.extraGainPerSecond * remaining,
-    );
+    gainPerSecond =
+      getRepDifficulty(state).decayPerSecond + wall.extraGainPerSecond;
   }
   const progress = Math.max(
     0,
